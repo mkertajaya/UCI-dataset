@@ -1,0 +1,569 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Facebook Cosmetics Page Interactions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "%matplotlib notebook\n",
+    "\n",
+    "import os\n",
+    "import json\n",
+    "import warnings\n",
+    "import time\n",
+    "import pickle\n",
+    "import requests\n",
+    "import zipfile\n",
+    "\n",
+    "\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "warnings.filterwarnings('ignore')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Get data\n",
+    "Only run it when you haven't downloaded the data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 102,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "URL = \"http://archive.ics.uci.edu/ml/machine-learning-databases/00368/Facebook_metrics.zip\"\n",
+    "\n",
+    "def fetch_data(fname='Facebook_metrics.zip'):\n",
+    "    \"\"\"\n",
+    "    Helper method to retreive the ML Repository dataset.\n",
+    "    \"\"\"\n",
+    "    response = requests.get(URL)\n",
+    "    outpath  = os.path.abspath(fname)\n",
+    "    with open(outpath, 'wb') as f:\n",
+    "        f.write(response.content)\n",
+    "    \n",
+    "    return outpath\n",
+    "\n",
+    "# Fetch the data if required\n",
+    "DATA = fetch_data()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 103,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#unzip\n",
+    "with zipfile.ZipFile(DATA, 'r') as zip_ref:\n",
+    "    zip_ref.extractall()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Data exploration\n",
+    "If you already have the data, starts here"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#unzip filename is dataset_Facebook.csv \n",
+    "df = pd.read_csv('dataset_Facebook.csv', ';')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 124,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Index(['Page total likes', 'Type', 'Category', 'Post Month', 'Post Weekday',\n",
+       "       'Post Hour', 'Paid', 'Lifetime Post Total Reach',\n",
+       "       'Lifetime Post Total Impressions', 'Lifetime Engaged Users',\n",
+       "       'Lifetime Post Consumers', 'Lifetime Post Consumptions',\n",
+       "       'Lifetime Post Impressions by people who have liked your Page',\n",
+       "       'Lifetime Post reach by people who like your Page',\n",
+       "       'Lifetime People who have liked your Page and engaged with your post',\n",
+       "       'comment', 'like', 'share', 'Total Interactions'],\n",
+       "      dtype='object')"
+      ]
+     },
+     "execution_count": 124,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 125,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(500, 19)"
+      ]
+     },
+     "execution_count": 125,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 126,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Page total likes</th>\n",
+       "      <th>Type</th>\n",
+       "      <th>Category</th>\n",
+       "      <th>Post Month</th>\n",
+       "      <th>Post Weekday</th>\n",
+       "      <th>Post Hour</th>\n",
+       "      <th>Paid</th>\n",
+       "      <th>Lifetime Post Total Reach</th>\n",
+       "      <th>Lifetime Post Total Impressions</th>\n",
+       "      <th>Lifetime Engaged Users</th>\n",
+       "      <th>Lifetime Post Consumers</th>\n",
+       "      <th>Lifetime Post Consumptions</th>\n",
+       "      <th>Lifetime Post Impressions by people who have liked your Page</th>\n",
+       "      <th>Lifetime Post reach by people who like your Page</th>\n",
+       "      <th>Lifetime People who have liked your Page and engaged with your post</th>\n",
+       "      <th>comment</th>\n",
+       "      <th>like</th>\n",
+       "      <th>share</th>\n",
+       "      <th>Total Interactions</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>139441</td>\n",
+       "      <td>Photo</td>\n",
+       "      <td>2</td>\n",
+       "      <td>12</td>\n",
+       "      <td>4</td>\n",
+       "      <td>3</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>2752</td>\n",
+       "      <td>5091</td>\n",
+       "      <td>178</td>\n",
+       "      <td>109</td>\n",
+       "      <td>159</td>\n",
+       "      <td>3078</td>\n",
+       "      <td>1640</td>\n",
+       "      <td>119</td>\n",
+       "      <td>4</td>\n",
+       "      <td>79.0</td>\n",
+       "      <td>17.0</td>\n",
+       "      <td>100</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>139441</td>\n",
+       "      <td>Status</td>\n",
+       "      <td>2</td>\n",
+       "      <td>12</td>\n",
+       "      <td>3</td>\n",
+       "      <td>10</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>10460</td>\n",
+       "      <td>19057</td>\n",
+       "      <td>1457</td>\n",
+       "      <td>1361</td>\n",
+       "      <td>1674</td>\n",
+       "      <td>11710</td>\n",
+       "      <td>6112</td>\n",
+       "      <td>1108</td>\n",
+       "      <td>5</td>\n",
+       "      <td>130.0</td>\n",
+       "      <td>29.0</td>\n",
+       "      <td>164</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>139441</td>\n",
+       "      <td>Photo</td>\n",
+       "      <td>3</td>\n",
+       "      <td>12</td>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>2413</td>\n",
+       "      <td>4373</td>\n",
+       "      <td>177</td>\n",
+       "      <td>113</td>\n",
+       "      <td>154</td>\n",
+       "      <td>2812</td>\n",
+       "      <td>1503</td>\n",
+       "      <td>132</td>\n",
+       "      <td>0</td>\n",
+       "      <td>66.0</td>\n",
+       "      <td>14.0</td>\n",
+       "      <td>80</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>139441</td>\n",
+       "      <td>Photo</td>\n",
+       "      <td>2</td>\n",
+       "      <td>12</td>\n",
+       "      <td>2</td>\n",
+       "      <td>10</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>50128</td>\n",
+       "      <td>87991</td>\n",
+       "      <td>2211</td>\n",
+       "      <td>790</td>\n",
+       "      <td>1119</td>\n",
+       "      <td>61027</td>\n",
+       "      <td>32048</td>\n",
+       "      <td>1386</td>\n",
+       "      <td>58</td>\n",
+       "      <td>1572.0</td>\n",
+       "      <td>147.0</td>\n",
+       "      <td>1777</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>139441</td>\n",
+       "      <td>Photo</td>\n",
+       "      <td>2</td>\n",
+       "      <td>12</td>\n",
+       "      <td>2</td>\n",
+       "      <td>3</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>7244</td>\n",
+       "      <td>13594</td>\n",
+       "      <td>671</td>\n",
+       "      <td>410</td>\n",
+       "      <td>580</td>\n",
+       "      <td>6228</td>\n",
+       "      <td>3200</td>\n",
+       "      <td>396</td>\n",
+       "      <td>19</td>\n",
+       "      <td>325.0</td>\n",
+       "      <td>49.0</td>\n",
+       "      <td>393</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   Page total likes    Type  Category  Post Month  Post Weekday  Post Hour  \\\n",
+       "0            139441   Photo         2          12             4          3   \n",
+       "1            139441  Status         2          12             3         10   \n",
+       "2            139441   Photo         3          12             3          3   \n",
+       "3            139441   Photo         2          12             2         10   \n",
+       "4            139441   Photo         2          12             2          3   \n",
+       "\n",
+       "   Paid  Lifetime Post Total Reach  Lifetime Post Total Impressions  \\\n",
+       "0   0.0                       2752                             5091   \n",
+       "1   0.0                      10460                            19057   \n",
+       "2   0.0                       2413                             4373   \n",
+       "3   1.0                      50128                            87991   \n",
+       "4   0.0                       7244                            13594   \n",
+       "\n",
+       "   Lifetime Engaged Users  Lifetime Post Consumers  \\\n",
+       "0                     178                      109   \n",
+       "1                    1457                     1361   \n",
+       "2                     177                      113   \n",
+       "3                    2211                      790   \n",
+       "4                     671                      410   \n",
+       "\n",
+       "   Lifetime Post Consumptions  \\\n",
+       "0                         159   \n",
+       "1                        1674   \n",
+       "2                         154   \n",
+       "3                        1119   \n",
+       "4                         580   \n",
+       "\n",
+       "   Lifetime Post Impressions by people who have liked your Page  \\\n",
+       "0                                               3078              \n",
+       "1                                              11710              \n",
+       "2                                               2812              \n",
+       "3                                              61027              \n",
+       "4                                               6228              \n",
+       "\n",
+       "   Lifetime Post reach by people who like your Page  \\\n",
+       "0                                              1640   \n",
+       "1                                              6112   \n",
+       "2                                              1503   \n",
+       "3                                             32048   \n",
+       "4                                              3200   \n",
+       "\n",
+       "   Lifetime People who have liked your Page and engaged with your post  \\\n",
+       "0                                                119                     \n",
+       "1                                               1108                     \n",
+       "2                                                132                     \n",
+       "3                                               1386                     \n",
+       "4                                                396                     \n",
+       "\n",
+       "   comment    like  share  Total Interactions  \n",
+       "0        4    79.0   17.0                 100  \n",
+       "1        5   130.0   29.0                 164  \n",
+       "2        0    66.0   14.0                  80  \n",
+       "3       58  1572.0  147.0                1777  \n",
+       "4       19   325.0   49.0                 393  "
+      ]
+     },
+     "execution_count": 126,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 127,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Type\n",
+       "Link       22\n",
+       "Photo     426\n",
+       "Status     45\n",
+       "Video       7\n",
+       "Name: Type, dtype: int64"
+      ]
+     },
+     "execution_count": 127,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df.groupby('Type')['Type'].count()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {},
+   "outputs": [
+    {
+     "output_type": "execute_result",
+     "data": {
+      "text/plain": "comment\n0      106\n1       62\n2       71\n3       36\n4       44\n5       20\n6       26\n7       20\n8        8\n9       15\n10      11\n11       8\n12       7\n13       4\n14       3\n15       2\n16       5\n17       4\n18       6\n19       3\n20       5\n21       1\n22       2\n23       1\n24       2\n25       3\n26       2\n29       1\n30       2\n33       2\n36       2\n37       1\n38       1\n41       1\n42       1\n45       2\n47       1\n51       1\n56       1\n58       1\n60       1\n64       1\n103      1\n144      1\n146      1\n372      1\nName: comment, dtype: int64"
+     },
+     "metadata": {},
+     "execution_count": 18
+    }
+   ],
+   "source": [
+    "#check null\n",
+    "df.groupby('comment')['comment'].count()\n",
+    "#df['Paid'].isna().sum()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Fill Null and Hot Encoding"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#fill null\n",
+    "df['Paid'] = df['Paid'].fillna(value=0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [
+    {
+     "output_type": "execute_result",
+     "data": {
+      "text/plain": "   Page total likes  Category  Post Month  Post Weekday  Post Hour  Paid  \\\n0            139441         2          12             4          3   0.0   \n1            139441         2          12             3         10   0.0   \n\n   Lifetime Post Total Reach  Lifetime Post Total Impressions  \\\n0                       2752                             5091   \n1                      10460                            19057   \n\n   Lifetime Engaged Users  Lifetime Post Consumers  ...  \\\n0                     178                      109  ...   \n1                    1457                     1361  ...   \n\n   Lifetime Post reach by people who like your Page  \\\n0                                              1640   \n1                                              6112   \n\n   Lifetime People who have liked your Page and engaged with your post  \\\n0                                                119                     \n1                                               1108                     \n\n   comment   like  share  Total Interactions  Link  Photo  Status  Video  \n0        4   79.0   17.0                 100     0      1       0      0  \n1        5  130.0   29.0                 164     0      0       1      0  \n\n[2 rows x 22 columns]",
+      "text/html": "<div>\n<style scoped>\n    .dataframe tbody tr th:only-of-type {\n        vertical-align: middle;\n    }\n\n    .dataframe tbody tr th {\n        vertical-align: top;\n    }\n\n    .dataframe thead th {\n        text-align: right;\n    }\n</style>\n<table border=\"1\" class=\"dataframe\">\n  <thead>\n    <tr style=\"text-align: right;\">\n      <th></th>\n      <th>Page total likes</th>\n      <th>Category</th>\n      <th>Post Month</th>\n      <th>Post Weekday</th>\n      <th>Post Hour</th>\n      <th>Paid</th>\n      <th>Lifetime Post Total Reach</th>\n      <th>Lifetime Post Total Impressions</th>\n      <th>Lifetime Engaged Users</th>\n      <th>Lifetime Post Consumers</th>\n      <th>...</th>\n      <th>Lifetime Post reach by people who like your Page</th>\n      <th>Lifetime People who have liked your Page and engaged with your post</th>\n      <th>comment</th>\n      <th>like</th>\n      <th>share</th>\n      <th>Total Interactions</th>\n      <th>Link</th>\n      <th>Photo</th>\n      <th>Status</th>\n      <th>Video</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>139441</td>\n      <td>2</td>\n      <td>12</td>\n      <td>4</td>\n      <td>3</td>\n      <td>0.0</td>\n      <td>2752</td>\n      <td>5091</td>\n      <td>178</td>\n      <td>109</td>\n      <td>...</td>\n      <td>1640</td>\n      <td>119</td>\n      <td>4</td>\n      <td>79.0</td>\n      <td>17.0</td>\n      <td>100</td>\n      <td>0</td>\n      <td>1</td>\n      <td>0</td>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>139441</td>\n      <td>2</td>\n      <td>12</td>\n      <td>3</td>\n      <td>10</td>\n      <td>0.0</td>\n      <td>10460</td>\n      <td>19057</td>\n      <td>1457</td>\n      <td>1361</td>\n      <td>...</td>\n      <td>6112</td>\n      <td>1108</td>\n      <td>5</td>\n      <td>130.0</td>\n      <td>29.0</td>\n      <td>164</td>\n      <td>0</td>\n      <td>0</td>\n      <td>1</td>\n      <td>0</td>\n    </tr>\n  </tbody>\n</table>\n<p>2 rows × 22 columns</p>\n</div>"
+     },
+     "metadata": {},
+     "execution_count": 9
+    }
+   ],
+   "source": [
+    "# Get one hot encoding of column\n",
+    "one_hot = pd.get_dummies(df['Type'])\n",
+    "# Drop original column as it is now encoded\n",
+    "df = df.drop('Type',axis = 1)\n",
+    "# Join the encoded df\n",
+    "df = df.join(one_hot)\n",
+    "df.head(2)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Model"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.linear_model import Ridge\n",
+    "from sklearn.metrics import r2_score\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.metrics import mean_squared_error\n",
+    "\n",
+    "#use later\n",
+    "from sklearn.model_selection import cross_val_score"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Ridge Regression"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "metadata": {},
+   "outputs": [
+    {
+     "output_type": "stream",
+     "name": "stdout",
+     "text": "23.17676635502205\n0.013937177726504713\n"
+    }
+   ],
+   "source": [
+    "#exclude for now\n",
+    "X = df[['Link', 'Photo', 'Status', 'Video', 'Category', 'Post Month', 'Post Weekday', 'Post Hour', 'Paid']]\n",
+    "\n",
+    "y = df['comment']\n",
+    "\n",
+    "# Split your data into training and test sets\n",
+    "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n",
+    "\n",
+    "# Initialize our algorithm\n",
+    "rr = Ridge(alpha=0.01)\n",
+    "rr.fit(X_train, y_train) \n",
+    "\n",
+    "pred_train_rr= rr.predict(X_train)\n",
+    "print(np.sqrt(mean_squared_error(y_train,pred_train_rr)))\n",
+    "print(r2_score(y_train, pred_train_rr))\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 29,
+   "metadata": {},
+   "outputs": [
+    {
+     "output_type": "stream",
+     "name": "stdout",
+     "text": "7.611782471497953\n-0.12071616130099794\n"
+    }
+   ],
+   "source": [
+    "pred_test_rr= rr.predict(X_test)\n",
+    "print(np.sqrt(mean_squared_error(y_test,pred_test_rr))) \n",
+    "print(r2_score(y_test, pred_test_rr))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.3-final"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
